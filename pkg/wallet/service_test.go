@@ -1,35 +1,126 @@
 package wallet
 
 import (
+	"fmt"
 	"reflect"
-	"testing"
-
 	"github.com/Ilhom5005/wallet/v1/pkg/types"
+	"github.com/google/uuid"
+	"testing"
 )
 
-func TestService_FindAccountByID(t *testing.T) {
-	type args struct {
-		accountID int
+func TestService_Reject_success(t *testing.T) {
+	
+	s := newTestService()
+	
+	_, payments, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return
 	}
-	tests := []struct {
-		name    string
-		s       *Service
-		args    args
-		want    *types.Account
-		wantErr bool
+	payment := payments[0]
+
+	 err = s.Reject(payment.ID)
+	 if err != nil {
+		t.Errorf("Reject(): can't register account, error = %v",err)
+		return
+	 }
+}
+
+func TestService_FindPaymentByID_success(t *testing.T) {
+
+	s := newTestService()
+	
+	_, payments, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	payment := payments[0]
+	 got, err := s.FindPaymentByID(payment.ID)
+	 if err != nil {
+		t.Errorf("FindPaymentByID(): can't found Payment by ID, error = %v",err)
+		return
+	 }
+
+	 if !reflect.DeepEqual(payment, got){
+		t.Errorf("FindPaymentByID(): wrong payment returned, error = %v",err)
+		return
+	 }
+
+}
+
+func TestService_FindPaymentByID_fail(t *testing.T) {
+	s := newTestService()
+	
+	_, _, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	
+	 _, err = s.FindPaymentByID(uuid.New().String())
+	 if err != nil {
+		t.Errorf("FindPaymentByID(): can't found Payment by ID wrong, error = %v",err)
+		return
+	 }
+}
+
+type testService struct {
+	*Service
+}
+
+func newTestService() *testService {
+	return &testService{Service: &Service{}}
+}
+
+func  (s *testService) addAccountWithBalance(phone types.Phone, balance types.Money) (*types.Account, error){
+	account, err := s.RegisterAccount(phone)
+	if err != nil {
+		return nil, fmt.Errorf("can't register account, err: %v", err)
+	}
+	s.Deposit(account.ID, balance)
+	if err != nil {
+		return nil, fmt.Errorf("can't deposit to account, err: %v", err)
+
+	}
+	return account, nil
+}
+
+type testAccount struct{
+	phone types.Phone
+	balance types.Money
+	payments []struct{
+		amount types.Money
+		category types.PaymentCategory
+	}
+}
+
+func (s *Service) addAccount(data testAccount)  (*types.Account, []*types.Payment, error) {
+	account, err := s.RegisterAccount(data.phone)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't register account, err: %v", err)
+	}
+	err = s.Deposit(account.ID, data.balance)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't deposit account, err: %v", err)
+	}
+	payments := make([]*types.Payment, len(data.payments))
+	for i, payment := range data.payments {
+		payments[i], err = s.Pay(account.ID, payment.amount, payment.category)
+		if err != nil{
+			return nil, nil, fmt.Errorf("can't make payment, err: %v", err)
+		}
+	}
+	return account, payments, nil
+}
+
+var defaultTestAccount = testAccount{
+	phone: "+9923333333",
+	balance: 100000000,
+	payments: []struct {
+		amount types.Money
+		category types.PaymentCategory
 	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.FindAccountByID(tt.args.accountID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Service.FindAccountByID() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Service.FindAccountByID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+		{amount: 10000, category: "auto"},
+	},
 }

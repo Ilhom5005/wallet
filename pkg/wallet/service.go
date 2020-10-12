@@ -1,6 +1,10 @@
 package wallet
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+	"log"
 	 "github.com/Ilhom5005/wallet/v1/pkg/types"
 	 "github.com/google/uuid"
 	 "errors"
@@ -13,6 +17,7 @@ var(
 	ErrAmountMustBePossitive = errors.New("amount must be greater then zero")
 	ErrAccountNotFound = errors.New("account not found")
 	ErrNotEnoughBalance = errors.New("Balance not enough")
+	ErrPaymentNotFound = errors.New("Payment not Found")
 )
 
 type Service struct {
@@ -21,6 +26,7 @@ type Service struct {
 	payments []*types.Payment
 	ID []*types.Account
 }
+
 
 
 func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
@@ -103,4 +109,73 @@ func (s *Service) Pay(accID int, amount types.Money, category types.PaymentCateg
 		}
 		s.payments = append(s.payments, payment)
 		return payment, nil
+}
+
+func (s *Service) Reject(paymentID string) error {
+	var targetPayment *types.Payment
+
+	for _, payment := range s.payments {
+		if payment.ID == paymentID{
+			targetPayment = payment
+			break
+		}
+		
+	}
+
+	if targetPayment == nil{
+		return ErrPaymentNotFound
+	}
+
+	var targetAccount *types.Account
+	for _, account := range s.accounts {
+		if account.ID == targetPayment.AccountID{
+			targetAccount = account
+			break
+		}
+		
+	}
+	if targetAccount == nil {
+		return ErrAccountNotFound
+	}
+	targetPayment.Status = types.PaymentStatusFail
+	targetAccount.Balance += targetPayment.Amount
+	return nil
+}
+
+func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
+	for _, payment := range s.payments {
+		if payment.ID == paymentID{
+			return payment, nil
+		}
+	}
+	return nil, ErrPaymentNotFound
+}
+
+func (s *Service) ExportToFile(path string) error {
+
+	var account *types.Account
+	var export string
+
+	for _, account := range s.accounts {
+		export += fmt.Sprint(account.ID) + ";" + fmt.Sprint(account.Phone) + ";" + fmt.Sprint(account.Balance) + "|"
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	defer func(){
+		if cerr:=file.Close(); cerr != nil{
+			log.Print(err)
+		}
+	}()
+
+	_, err = file.Write([]byte(strconv.FormatInt(int64(account.ID), 10)))
+		if err != nil {
+			log.Print(err)
+			return err
+		}
+		log.Printf("%#v", file)
+		return err
 }
