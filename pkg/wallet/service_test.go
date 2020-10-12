@@ -174,13 +174,13 @@ func TestService_FindAccountByID_success_user(t *testing.T){
 	}
 }
 
-func TestService_FindAccountByID_notFount_user(t *testing.T){
+func TestService_FindAccountByID_notFound_user(t *testing.T){
 	s := newTestService()
 
 	s.RegisterAccount("+918616330")
 	account, err := s.FindAccountByID(2)
 
-	if err != nil {
+	if err == nil {
 		t.Errorf("method FindPaymentByID returned nil error, payment => %v", account)
 		return
 	}
