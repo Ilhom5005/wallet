@@ -3,7 +3,6 @@ package wallet
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"log"
 	 "github.com/Ilhom5005/wallet/v1/pkg/types"
 	 "github.com/google/uuid"
@@ -224,14 +223,13 @@ func (s *Service) ExportToFile(path string) error {
 		}
 	}()
 
-	var account *types.Account
 	var export string
 
 	for _, account := range s.accounts {
 		export += fmt.Sprint(account.ID) + ";" + fmt.Sprint(account.Phone) + ";" + fmt.Sprint(account.Balance) + "|"
 	}
 
-	_, err = file.WriteString(strconv.FormatInt(int64(account.ID), 10))
+	_, err = file.WriteString(export)
 		if err != nil {
 			log.Print(err)
 			return err
