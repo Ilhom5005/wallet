@@ -70,3 +70,11 @@ type Account struct {
 	Phone Phone
 	Balance Money
 }
+
+type Favorite struct {
+	ID        string
+	AccountID int
+	Name      string
+	Amount    Money
+	Category  PaymentCategory
+}

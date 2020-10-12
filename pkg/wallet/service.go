@@ -18,6 +18,7 @@ var(
 	ErrAccountNotFound = errors.New("account not found")
 	ErrNotEnoughBalance = errors.New("Balance not enough")
 	ErrPaymentNotFound = errors.New("Payment not Found")
+	ErrFavoriteNotFound = errors.New("Favorite not Found")
 )
 
 type Service struct {
@@ -25,6 +26,7 @@ type Service struct {
 	accounts []*types.Account
 	payments []*types.Payment
 	ID []*types.Account
+	favorites []*types.Favorite
 }
 
 
@@ -193,4 +195,45 @@ func (s *Service) ExportToFile(path string) error {
 		}
 		log.Printf("%#v", file)
 		return err
+}
+
+func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
+	for _, favorite := range s.favorites {
+		if favorite.ID == favoriteID{
+			return favorite, nil
+		}
+	}
+	return nil, ErrFavoriteNotFound
+}
+
+
+func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
+	payment, err := s.FindPaymentByID(paymentID)
+	
+	if err != nil {
+		return nil, err
+	}
+	favoriteID := uuid.New().String()
+	newFavorite := &types.Favorite{
+		ID: 		favoriteID,
+		AccountID: 	payment.AccountID,
+		Name: 		name,
+		Amount: 	payment.Amount,
+		Category: 	payment.Category,
+	}
+	s.favorites = append(s.favorites, newFavorite)
+	return newFavorite, nil
+}
+
+
+func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
+	favorite, err := s.FindFavoriteByID(favoriteID)
+	if err != nil {
+		return nil, err
+	}
+	payment, err := s.Pay(favorite.AccountID, favorite.Amount, favorite.Category)
+	if err != nil {
+		return nil, err
+	}
+	return payment, nil
 }
