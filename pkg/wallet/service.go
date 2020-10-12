@@ -168,34 +168,7 @@ func (s *Service) Repeat(paymentID string)(*types.Payment, error)  {
 }
 
 
-func (s *Service) ExportToFile(path string) error {
 
-	var account *types.Account
-	var export string
-
-	for _, account := range s.accounts {
-		export += fmt.Sprint(account.ID) + ";" + fmt.Sprint(account.Phone) + ";" + fmt.Sprint(account.Balance) + "|"
-	}
-
-	file, err := os.Create(path)
-	if err != nil {
-		log.Print(err)
-		return err
-	}
-	defer func(){
-		if cerr:=file.Close(); cerr != nil{
-			log.Print(err)
-		}
-	}()
-
-	_, err = file.Write([]byte(strconv.FormatInt(int64(account.ID), 10)))
-		if err != nil {
-			log.Print(err)
-			return err
-		}
-		log.Printf("%#v", file)
-		return err
-}
 
 func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
 	for _, favorite := range s.favorites {
@@ -236,4 +209,33 @@ func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 		return nil, err
 	}
 	return payment, nil
+}
+
+func (s *Service) ExportToFile(path string) error {
+
+	file, err := os.Create(path)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	defer func(){
+		if cerr:=file.Close(); cerr != nil{
+			log.Print(err)
+		}
+	}()
+
+	var account *types.Account
+	var export string
+
+	for _, account := range s.accounts {
+		export += fmt.Sprint(account.ID) + ";" + fmt.Sprint(account.Phone) + ";" + fmt.Sprint(account.Balance) + "|"
+	}
+
+	_, err = file.WriteString(strconv.FormatInt(int64(account.ID), 10))
+		if err != nil {
+			log.Print(err)
+			return err
+		}
+		log.Printf("%#v", file)
+		return err
 }
