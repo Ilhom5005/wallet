@@ -1,6 +1,9 @@
 package wallet
 
 import (
+	"io"
+	"strings"
+	"strconv"
 	"fmt"
 	"os"
 	"log"
@@ -18,6 +21,7 @@ var(
 	ErrNotEnoughBalance = errors.New("Balance not enough")
 	ErrPaymentNotFound = errors.New("Payment not Found")
 	ErrFavoriteNotFound = errors.New("Favorite not Found")
+	ErrFileNotFound = errors.New("File not found")
 )
 
 type Service struct {
@@ -236,4 +240,58 @@ func (s *Service) ExportToFile(path string) error {
 		}
 		log.Printf("%#v", file)
 		return err
+}
+
+func (s *Service) ImportFromFile(path string) error {
+	file, err := os.Open(path)
+
+	if err != nil{
+		log.Print(err)
+		return ErrFileNotFound
+	}
+	defer func (){
+		if cerr := file.Close(); cerr != nil {
+			log.Print(cerr)
+		}
+	}()
+
+	content := make([]byte, 0)
+	buf := make([]byte, 4)
+	for {
+		read, err := file.Read(buf)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil{
+			log.Print(err)
+			return ErrFileNotFound
+		}
+		content = append(content, buf[:read]...)
+	}
+	data := string(content)
+
+	accounts := strings.Split(data, "|")
+	accounts = accounts[:len(accounts)-1]
+	for _, account := range accounts {
+		value := strings.Split(account, ";")
+		id, err :=strconv.Atoi(value[0])
+		if err != nil {
+			return err
+		}
+		phone := types.Phone(value[1])
+		balance, err := strconv.Atoi(value[2])
+		if err != nil {
+			return err
+		}
+		addAccount := &types.Account {
+			ID: int(id),
+			Phone: phone,
+			Balance: types.Money(balance),
+		}
+
+		s.accounts = append(s.accounts, addAccount)
+		log.Print(account)
+	} 
+	return nil
 }

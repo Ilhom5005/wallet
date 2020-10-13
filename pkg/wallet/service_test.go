@@ -214,3 +214,26 @@ func TestService_Favorite_success_user(t *testing.T) {
 		t.Errorf("PayFromFavorite() Error() can't for an favorite(%v): %v", paymentFavorite, err)
 	}
 }
+
+
+func TestService_Export_success_user(t *testing.T) {
+	var svc Service
+	svc.RegisterAccount("+992000000001")
+	svc.RegisterAccount("+992000000002")
+	svc.RegisterAccount("+992000000003")
+  
+	err := svc.ExportToFile("import.txt")
+	if err != nil {
+	  t.Errorf("method ExportToFile returned not nil error, err => %v", err)
+	}
+  
+  }
+  
+  func TestService_Import_success_user(t *testing.T) {
+	var svc Service
+	err := svc.ImportFromFile("import.txt")
+	if err != nil {
+	  t.Errorf("method ExportToFile returned not nil error, err => %v", err)
+	}
+  
+  }
