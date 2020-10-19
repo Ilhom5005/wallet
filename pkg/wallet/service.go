@@ -14,150 +14,181 @@ import (
 	 "errors"
 )
 
+type Error string
 
+func (e Error) Error() string {
 
-var(
-	ErrPhoneregistered = errors.New("phone alredy registered")
-	ErrAmountMustBePossitive = errors.New("amount must be greater then zero")
-	ErrAccountNotFound = errors.New("account not found")
-	ErrNotEnoughBalance = errors.New("Balance not enough")
-	ErrPaymentNotFound = errors.New("Payment not Found")
-	ErrFavoriteNotFound = errors.New("Favorite not Found")
-	ErrFileNotFound = errors.New("File not found")
-)
+	return string(e)
 
-type Service struct {
-	nextAccountID int
-	accounts []*types.Account
-	payments []*types.Payment
-	ID []*types.Account
-	favorites []*types.Favorite
 }
 
+var ErrPhoneNumberRegistred = errors.New("phone already registred")
+var ErrAmountMustBePositive = errors.New("amount must be greater that zero")
+var ErrAccountNotFound = errors.New("account not found")
+var ErrNotEnoughBalance = errors.New("not enough balance")
+var ErrPaymentNotFound = errors.New("payment not found")
+var ErrFavoriteNotFound = errors.New("favorite not found")
+var ErrFileNotFound = errors.New("File Not found")
+var Err = errors.New("gavno")
 
+//Service -
+type Service struct {
+	nextAccountID int64
+	accounts      []*types.Account
+	payments      []*types.Payment
+	favorites     []*types.Favorite
+}
 
+//RegisterAccount создаем тут ак
 func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
+
 	for _, account := range s.accounts {
-		if account.Phone == phone{
-			return nil, ErrPhoneregistered
+		if account.Phone == phone {
+			return nil, ErrPhoneNumberRegistred
 		}
-		
 	}
+
 	s.nextAccountID++
-	account := &types.Account {
-		ID: s.nextAccountID,
-		Phone: phone,
+	account := &types.Account{
+		ID:      s.nextAccountID,
+		Phone:   phone,
 		Balance: 0,
 	}
+
 	s.accounts = append(s.accounts, account)
+
 	return account, nil
+
 }
 
-func (s *Service) Deposit(accountID int, amount types.Money) error {
+// так, он находит по ID
+// у нас есть слайст структур
+// нам нужен отдельная структура, чтобы туда запихнуть данные
+// вызываем цикл
+// в аргументах например мы дали ID 1
+// потом мы делаем проверку
+// acc.ID == account.ID{
+// account = acc
+//
+
+func (s *Service) Deposit(accountID int64, amount types.Money) error {
 	if amount <= 0 {
-		return ErrAmountMustBePossitive
+		return ErrAmountMustBePositive
+
 	}
+
 	var account *types.Account
 
 	for _, acc := range s.accounts {
 		if acc.ID == accountID {
 			account = acc
-			break
 		}
-	}	
-	if account == nil{
+
+	}
+	if account == nil {
 		return ErrAccountNotFound
 	}
-	account.Balance+= amount
+	account.Balance += amount
+
 	return nil
 }
 
-func (s *Service) FindAccountByID(accountID int) (*types.Account, error) {
-	for _, account := range s.accounts {
-		if account.ID == accountID {
-			return account, nil
-		}
-		
-	}
-	s.nextAccountID++
-	account := &types.Account {
-		ID: s.nextAccountID,
-	}
-	s.accounts = append(s.ID, account)
-	return nil, ErrAccountNotFound
-}
-
-func (s *Service) Pay(accID int, amount types.Money, category types.PaymentCategory) (*types.Payment, error) {
-	if amount <=0 {
-		return nil, ErrAmountMustBePossitive
+func (s *Service) Pay(accountID int64, amount types.Money, category types.PaymentCategory) (*types.Payment, error) {
+	if amount <= 0 {
+		return nil, ErrAmountMustBePositive
 	}
 	var account *types.Account
-
 	for _, acc := range s.accounts {
-		if acc.ID == accID {
+		if acc.ID == accountID {
 			account = acc
 			break
 		}
+
 	}
-		if account == nil{
-			return nil, ErrAccountNotFound
+
+	if account == nil {
+		return nil, ErrAccountNotFound
+	}
+
+	if account.Balance < amount {
+		return nil, ErrNotEnoughBalance
+
+	}
+	account.Balance -= amount
+
+	paymentID := uuid.New().String()
+	payment := &types.Payment{
+		ID:        paymentID,
+		AccountID: accountID,
+		Amount:    amount,
+		Category:  category,
+		Status:    types.PaymentStatusInProgress,
+	}
+
+	s.payments = append(s.payments, payment)
+	return payment, nil
+
+}
+
+func (s *Service) FindAccountByID(accountID int64) (*types.Account, error) {
+	var account *types.Account
+	for _, acc := range s.accounts {
+		if acc.ID == accountID {
+			account = acc
 		}
-		if account.Balance < amount {
-			return nil, ErrNotEnoughBalance
+	}
+	if account == nil {
+		return nil, ErrAccountNotFound
+	}
+	return account, nil
+
+}
+
+func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
+	var payment *types.Payment
+	for _, pay := range s.payments {
+		if pay.ID == paymentID {
+			payment = pay
+			break
 		}
-		account.Balance -= amount
-		paymentID := uuid.New().String()
-		payment := &types.Payment {
-			ID: paymentID,
-			AccountID: accID,
-			Amount: amount,
-			Category: category,
-			Status: types.PaymentStatusInprogress,
-		}
-		s.payments = append(s.payments, payment)
-		return payment, nil
+	}
+	if payment == nil {
+		return nil, ErrPaymentNotFound
+	}
+	return payment, nil
 }
 
 func (s *Service) Reject(paymentID string) error {
 	var targetPayment *types.Payment
 
 	for _, payment := range s.payments {
-		if payment.ID == paymentID{
+		if payment.ID == paymentID {
 			targetPayment = payment
 			break
 		}
-		
-	}
 
-	if targetPayment == nil{
+	}
+	if targetPayment == nil {
 		return ErrPaymentNotFound
 	}
-
 	var targetAccount *types.Account
+
 	for _, account := range s.accounts {
-		if account.ID == targetPayment.AccountID{
+
+		if account.ID == targetPayment.AccountID {
 			targetAccount = account
 			break
 		}
-		
 	}
 	if targetAccount == nil {
 		return ErrAccountNotFound
 	}
 	targetPayment.Status = types.PaymentStatusFail
 	targetAccount.Balance += targetPayment.Amount
+
 	return nil
-}
 
-func (s *Service) FindPaymentByID(paymentID string) (*types.Payment, error) {
-	for _, payment := range s.payments {
-		if payment.ID == paymentID{
-			return payment, nil
-		}
-	}
-	return nil, ErrPaymentNotFound
 }
-
 
 func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
 	pay, err := s.FindPaymentByID(paymentID)
@@ -173,47 +204,48 @@ func (s *Service) Repeat(paymentID string) (*types.Payment, error) {
 	return payment, nil
 }
 
+// он создает FavoritePayment
+func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
+	payment, err := s.FindPaymentByID(paymentID)
 
+	if err != nil {
+		return nil, err
+	}
 
+	favoriteID := uuid.New().String()
+	newFavorite := &types.Favorite{
+		ID:        favoriteID,
+		AccountID: payment.AccountID,
+		Name:      name,
+		Amount:    payment.Amount,
+		Category:  payment.Category,
+	}
+
+	s.favorites = append(s.favorites, newFavorite)
+	return newFavorite, nil
+}
 
 func (s *Service) FindFavoriteByID(favoriteID string) (*types.Favorite, error) {
 	for _, favorite := range s.favorites {
-		if favorite.ID == favoriteID{
+		if favorite.ID == favoriteID {
 			return favorite, nil
 		}
 	}
 	return nil, ErrFavoriteNotFound
 }
 
-
-func (s *Service) FavoritePayment(paymentID string, name string) (*types.Favorite, error) {
-	payment, err := s.FindPaymentByID(paymentID)
-	
-	if err != nil {
-		return nil, err
-	}
-	favoriteID := uuid.New().String()
-	newFavorite := &types.Favorite{
-		ID: 		favoriteID,
-		AccountID: 	payment.AccountID,
-		Name: 		name,
-		Amount: 	payment.Amount,
-		Category: 	payment.Category,
-	}
-	s.favorites = append(s.favorites, newFavorite)
-	return newFavorite, nil
-}
-
-
+//PayFromFavorite для совершения платежа в Избранное
 func (s *Service) PayFromFavorite(favoriteID string) (*types.Payment, error) {
 	favorite, err := s.FindFavoriteByID(favoriteID)
 	if err != nil {
 		return nil, err
 	}
+
 	payment, err := s.Pay(favorite.AccountID, favorite.Amount, favorite.Category)
 	if err != nil {
 		return nil, err
 	}
+
 	return payment, nil
 }
 
@@ -285,7 +317,7 @@ func (s *Service) ImportFromFile(path string) error {
 			}
 
 			newAccount := &types.Account{
-				ID:      int(id),
+				ID:      int64(id),
 				Phone:   types.Phone(datas[1]),
 				Balance: types.Money(balance),
 			}
@@ -300,7 +332,6 @@ func (s *Service) ImportFromFile(path string) error {
 // у нас же данные есть ведь? - например RegisterAc - который в памяти хранится
 // если она пустая то дай ошибку
 // нужна отдельная функция для создания файлов, чтобы 3 раза не писать одно и тоже
-
 
 func (s *Service) Export(dir string) error {
 	// внутри него данные
@@ -431,7 +462,7 @@ func (s *Service) actionByAccounts(path string) error {
 				return err
 			}
 
-			account, err := s.FindAccountByID(int(id))
+			account, err := s.FindAccountByID(int64(id))
 			if err != nil {
 				acc, err := s.RegisterAccount(phone)
 				if err != nil {
@@ -486,7 +517,7 @@ func (s *Service) actionByPayments(path string) error {
 			if err != nil {
 				newPayment := &types.Payment{
 					ID:        id,
-					AccountID: int(accountID),
+					AccountID: int64(accountID),
 					Amount:    types.Money(amount),
 					Category:  types.PaymentCategory(category),
 					Status:    types.PaymentStatus(status),
@@ -494,7 +525,7 @@ func (s *Service) actionByPayments(path string) error {
 
 				s.payments = append(s.payments, newPayment)
 			} else {
-				payment.AccountID = int(accountID)
+				payment.AccountID = int64(accountID)
 				payment.Amount = types.Money(amount)
 				payment.Category = category
 				payment.Status = status
@@ -541,7 +572,7 @@ func (s *Service) actionByFavorites(path string) error {
 			if err != nil {
 				newFavorite := &types.Favorite{
 					ID:        id,
-					AccountID: int(accountID),
+					AccountID: int64(accountID),
 					Name:      name,
 					Amount:    types.Money(amount),
 					Category:  types.PaymentCategory(category),
@@ -549,7 +580,7 @@ func (s *Service) actionByFavorites(path string) error {
 
 				s.favorites = append(s.favorites, newFavorite)
 			} else {
-				favorite.AccountID = int(accountID)
+				favorite.AccountID = int64(accountID)
 				favorite.Name = name
 				favorite.Amount = types.Money(amount)
 				favorite.Category = category
@@ -559,6 +590,74 @@ func (s *Service) actionByFavorites(path string) error {
 		log.Println(ErrFileNotFound.Error())
 	}
 
+	return nil
+}
+
+func (s *Service) ExportAccountHistory(accountID int64) ([]types.Payment, error) {
+	_, err := s.FindAccountByID(accountID)
+	if err != nil {
+		return nil, ErrAccountNotFound
+	}
+	accountPayments := []types.Payment{}
+
+	for _, payment := range s.payments {
+		if payment.AccountID == accountID {
+			accountPayments = append(accountPayments, types.Payment{
+				ID:        payment.ID,
+				AccountID: payment.AccountID,
+				Amount:    payment.Amount,
+				Category:  payment.Category,
+				Status:    payment.Status,
+			})
+		}
+	}
+
+	return accountPayments, nil
+}
+
+func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records int) error {
+	if len(payments) == 0 {
+		return nil
+	}
+	if len(payments) <= records {
+		exportPayments(payments, dir+"/payments.dump")
+		return nil
+	}
+	var iterator int = 1
+	count := 0
+	for i := 1; i <= len(payments); i++ {
+		strIterator := strconv.Itoa(iterator)
+		fileName := dir + "/payments" + strIterator + ".dump"
+		if i == len(payments) && i-count != records {
+			exportPayments(payments[count:i], fileName)
+		}
+
+		if i-count == records {
+			exportPayments(payments[count:i], fileName)
+			count += records
+			iterator++
+		}
+	}
+	return nil
+}
+
+func exportPayments(payments []types.Payment, path string) error {
+	pay := ""
+
+	for _, payment := range payments {
+
+		pay += payment.ID + ";"
+		pay += strconv.Itoa(int(payment.AccountID)) + ";"
+		pay += strconv.Itoa(int(payment.Amount)) + ";"
+		pay += string(payment.Category) + ";"
+		pay += string(payment.Status) + ";"
+		pay += "\n"
+	}
+	err := WriteToFile(path, pay)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
 	return nil
 }
 
