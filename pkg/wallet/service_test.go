@@ -215,28 +215,57 @@ func TestService_Favorite_success_user(t *testing.T) {
 	}
 }
 
+func TestService_Export_success(t *testing.T) {
+	s := newTestService()
 
-func TestService_Export_success_user(t *testing.T) {
-	var svc Service
-	svc.RegisterAccount("+992000000001")
-	svc.RegisterAccount("+992000000002")
-	svc.RegisterAccount("+992000000003")
-  
-	err := svc.ExportToFile("export.txt")
+	_, payments, err := s.addAccount(defaultTestAccount)
 	if err != nil {
-	  t.Errorf("method ExportToFile returned not nil error, err => %v", err)
+		t.Error(err)
+		return
 	}
-  
-  }
-  
-  func TestService_Import_success_user(t *testing.T) {
-	var svc Service
-	err := svc.ImportFromFile("export.txt")
+
+	_, payments, err = s.addAccount(testAccount{
+		phone:   "+992935444994",
+		balance: 10_000_00,
+		payments: []struct {
+			amount   types.Money
+			category types.PaymentCategory
+		}{{
+			amount:   1000_00,
+			category: "auto",
+		}},
+	})
 	if err != nil {
-	  t.Errorf("method ExportToFile returned not nil error, err => %v", err)
+		t.Error(err)
+		return
 	}
-  
-  }
+
+	payment := payments[0]
+	favorite, err := s.FavoritePayment(payment.ID, "ogastus")
+	if err != nil {
+		t.Errorf("cant find favorite, error = %v", err)
+	}
+
+	paymentFavorite, err := s.PayFromFavorite(favorite.ID)
+	if err != nil {
+		t.Errorf("PayFromFavorite() can't for an favorite(%v), error = %v", paymentFavorite, err)
+	}
+
+	err = s.Export("data")
+	if err != nil {
+		t.Errorf("Export() Error can't export error = %v", err)
+	}
+}
+
+func TestService_Import_success(t *testing.T) {
+	s := newTestService()
+
+	err := s.Import("data")
+
+	if err != nil {
+		t.Errorf("Import() Error can't import error = %v", err)
+	}
+}
 
 
   func BenchmarkSumPayments(b *testing.B) {
