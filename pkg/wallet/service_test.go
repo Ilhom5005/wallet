@@ -311,7 +311,7 @@ func TestService_Import_success(t *testing.T) {
 				category: "auto",
 			},
 			{
-				amount:   9877_00,
+				amount:   9999_00,
 				category: "auto",
 			},
 		},
