@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"sync"
 	"io"
 	"strings"
 	"strconv"
@@ -541,4 +542,43 @@ func (s *Service)Import(dir string) error{
 	return nil
 }
 
+func (s *Service) SumPayments(goroutines int) types.Money {
+	wg := sync.WaitGroup{}
+	mu := sync.Mutex{}
+	var summ types.Money = 0
+	if goroutines == 0 || goroutines == 1 {
+		wg.Add(1)
+		go func(payments []*types.Payment) {
+			defer wg.Done()
+			for _, payment := range payments {
+				summ += payment.Amount
+			}
+		}(s.payments)
+	} else {
+		from := 0
+		count := len(s.payments) / goroutines
+		for i := 1; i <= goroutines; i++ {
+			wg.Add(1)
+			last := len(s.payments) - i*count
+			if i == goroutines {
+				last = 0
+			}
+			to := len(s.payments) - last
+			go func(payments []*types.Payment) {
+				defer wg.Done()
+				s := types.Money(0)
+				for _, payment := range payments {
+					s += payment.Amount
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				summ += s
+			}(s.payments[from:to])
+			from += count
+		}
+	}
 
+	wg.Wait()
+
+	return summ
+}
