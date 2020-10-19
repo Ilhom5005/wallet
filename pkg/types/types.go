@@ -49,14 +49,14 @@ type PaymentSources struct {
 const (
 	PaymentStatusOk PaymentStatus = "OK"
 	PaymentStatusFail PaymentStatus = "FAIL"
-	PaymentStatusInProgress PaymentStatus = "INPROGRESS"
+	PaymentStatusInprogress PaymentStatus = "INPROGRESS"
 )
 
 
 // Payment представляет информацию о платеже
 type Payment struct {
 	ID string
-	AccountID int64
+	AccountID int
 	Amount Money
 	Category PaymentCategory
 	Status PaymentStatus
@@ -66,14 +66,14 @@ type Payment struct {
 type Phone string
 
 type Account struct {
-	ID int64
+	ID int
 	Phone Phone
 	Balance Money
 }
 
 type Favorite struct {
 	ID        string
-	AccountID int64
+	AccountID int
 	Name      string
 	Amount    Money
 	Category  PaymentCategory
