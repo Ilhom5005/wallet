@@ -238,6 +238,26 @@ func TestService_Import_success(t *testing.T) {
 	}
 }
 
+func TestService_ExportImport_success_user(t *testing.T) {
+	var svc Service
+
+	svc.RegisterAccount("+992000000001")
+	svc.RegisterAccount("+992000000002")
+	svc.RegisterAccount("+992000000003")
+	svc.RegisterAccount("+992000000004")
+	
+	err := svc.Export(".")
+	if err != nil {
+		t.Errorf("method ExportToFile returned not nil error, err => %v", err)
+	}
+
+	err = svc.Import(".")
+	
+	if err != nil {
+		t.Errorf("method ImportToFile returned not nil error, err => %v", err)
+	}
+
+}
 
 func BenchmarkSumPayments_user(b *testing.B) {
 	var svc Service  
