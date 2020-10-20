@@ -26,7 +26,7 @@ var(
 )
 
 type Service struct {
-	nextAccountID int
+	nextAccountID int64
 	accounts []*types.Account
 	payments []*types.Payment
 	ID []*types.Account
@@ -52,7 +52,7 @@ func (s *Service) RegisterAccount(phone types.Phone) (*types.Account, error) {
 	return account, nil
 }
 
-func (s *Service) Deposit(accountID int, amount types.Money) error {
+func (s *Service) Deposit(accountID int64, amount types.Money) error {
 	if amount <= 0 {
 		return ErrAmountMustBePossitive
 	}
@@ -71,7 +71,7 @@ func (s *Service) Deposit(accountID int, amount types.Money) error {
 	return nil
 }
 
-func (s *Service) FindAccountByID(accountID int) (*types.Account, error) {
+func (s *Service) FindAccountByID(accountID int64) (*types.Account, error) {
 	for _, account := range s.accounts {
 		if account.ID == accountID {
 			return account, nil
@@ -86,7 +86,7 @@ func (s *Service) FindAccountByID(accountID int) (*types.Account, error) {
 	return nil, ErrAccountNotFound
 }
 
-func (s *Service) Pay(accID int, amount types.Money, category types.PaymentCategory) (*types.Payment, error) {
+func (s *Service) Pay(accID int64, amount types.Money, category types.PaymentCategory) (*types.Payment, error) {
 	if amount <=0 {
 		return nil, ErrAmountMustBePossitive
 	}
@@ -286,7 +286,7 @@ func (s *Service) ImportFromFile(path string) error {
 			return err
 		}
 		addAccount := &types.Account {
-			ID: int(id),
+			ID: int64(id),
 			Phone: phone,
 			Balance: types.Money(balance),
 		}
@@ -411,7 +411,7 @@ func (s *Service)Import(dir string) error{
 			return err
 		}
 		addAccount := &types.Account {
-			ID: int(id),
+			ID: int64(id),
 			Phone: phone,
 			Balance: types.Money(balance),
 	    }
@@ -467,7 +467,7 @@ func (s *Service)Import(dir string) error{
 		paymentCategory := types.PaymentCategory(val[3])
 		paymentStatus := types.PaymentStatus(val[4])
 		addPayment := &types.Payment {
-			AccountID: int(accountID),
+			AccountID: int64(accountID),
 			ID:  paymentID,
 			Amount:  types.Money(paymentAmount),
 			Category:  types.PaymentCategory(paymentCategory),
@@ -529,7 +529,7 @@ func (s *Service)Import(dir string) error{
 
 		addFavorite := &types.Favorite {
 			ID:  favID,
-			AccountID: int(favactID),
+			AccountID: int64(favactID),
 			Name:   favName,
 			Amount:  types.Money(favAmount),
 			Category:  types.PaymentCategory(favCategory),    
