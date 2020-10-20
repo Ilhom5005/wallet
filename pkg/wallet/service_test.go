@@ -239,66 +239,15 @@ func TestService_Import_success(t *testing.T) {
 }
 
 
-  func BenchmarkSumPayments(b *testing.B) {
-	s := newTestService()
+func BenchmarkSumPayments_user(b *testing.B) {
+	var svc Service  
+	want:= types.Money(0)
+	for i:=0 ; i < b.N ; i++ {
+		result := svc.SumPayments(2)
+		if result != types.Money(want) {
+			b.Fatalf("invalid result, got %v, want %v", result, want)
 
-	_, _, err := s.addAccount(testAccount{
-		phone:   "+992935444994",
-		balance: 1000_000_00,
-		payments: []struct {
-			amount   types.Money
-			category types.PaymentCategory
-		}{
-			{
-				amount:   1000_00,
-				category: "auto",
-			},
-			{
-				amount:   2000_00,
-				category: "auto",
-			},
-			{
-				amount:   3000_00,
-				category: "auto",
-			},
-			{
-				amount:   4000_00,
-				category: "auto",
-			},
-			{
-				amount:   5000_00,
-				category: "auto",
-			},
-			{
-				amount:   6000_00,
-				category: "auto",
-			},
-			{
-				amount:   1250_00,
-				category: "auto",
-			},
-			{
-				amount:   1870_00,
-				category: "auto",
-			},
-			{
-				amount:   9999_00,
-				category: "auto",
-			},
-		},
-	})
-
-	if err != nil {
-		b.Error(err)
-		return
-	}
-
-	want := types.Money(3399700)
-
-	for i := 0; i < b.N; i++ {
-		result := s.SumPayments(6)
-		if result != want {
-			b.Fatalf("invalid result, got = %v want = %v", result, want)
 		}
 	}
 }
+

@@ -542,43 +542,47 @@ func (s *Service)Import(dir string) error{
 	return nil
 }
 
+//SumPayments сумирует платежи
 func (s *Service) SumPayments(goroutines int) types.Money {
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
-	var summ types.Money = 0
-	if goroutines == 0 || goroutines == 1 {
-		wg.Add(1)
-		go func(payments []*types.Payment) {
-			defer wg.Done()
-			for _, payment := range payments {
-				summ += payment.Amount
-			}
-		}(s.payments)
+	sum := int64(0)
+	kol := 0
+	i := 0
+	if goroutines == 0 {
+		kol = len(s.payments)
 	} else {
-		from := 0
-		count := len(s.payments) / goroutines
-		for i := 1; i <= goroutines; i++ {
-			wg.Add(1)
-			last := len(s.payments) - i*count
-			if i == goroutines {
-				last = 0
-			}
-			to := len(s.payments) - last
-			go func(payments []*types.Payment) {
-				defer wg.Done()
-				s := types.Money(0)
-				for _, payment := range payments {
-					s += payment.Amount
-				}
-				mu.Lock()
-				defer mu.Unlock()
-				summ += s
-			}(s.payments[from:to])
-			from += count
-		}
+		kol = int(len(s.payments) / goroutines)
 	}
+	for i = 0; i < goroutines-1; i++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			val := int64(0)
+			payments := s.payments[index*kol : (index+1)*kol]
+			for _, payment := range payments {
+				val += int64(payment.Amount)
+			}
+			mu.Lock()
+			sum += val
+			mu.Unlock()
 
+		}(i)
+	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		val := int64(0)
+		payments := s.payments[i*kol:]
+		for _, payment := range payments {
+			val += int64(payment.Amount)
+		}
+		mu.Lock()
+		sum += val
+		mu.Unlock()
+
+	}()
 	wg.Wait()
-
-	return summ
+	return types.Money(sum)
 }
+
