@@ -542,6 +542,53 @@ func (s *Service)Import(dir string) error{
 	return nil
 }
 
+
+// HistoryToFiles save datas recieved from above method
+func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records int) error {
+
+	if len(payments) > 0 {
+		if len(payments) <= records {
+			file, _ := os.OpenFile(dir+"/payments.dump", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+			defer func(){
+				if cerr := file.Close(); cerr != nil {
+					log.Print(cerr)
+				}
+			}()
+			var str string
+			for _, val := range payments {
+				str += fmt.Sprint(val.ID) + ";" + fmt.Sprint(val.AccountID) + ";" + fmt.Sprint(val.Amount) + ";" + fmt.Sprint(val.Category) + ";" + fmt.Sprint(val.Status) + "\n"
+			}
+			file.WriteString(str)
+		} else {
+
+			var str string
+			k := 0
+			j := 1
+			var file *os.File
+			for _, val := range payments {
+				if k == 0 {
+					file, _ = os.OpenFile(dir+"/payments"+fmt.Sprint(j)+".dump", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+				}
+				k++
+				str = fmt.Sprint(val.ID) + ";" + fmt.Sprint(val.AccountID) + ";" + fmt.Sprint(val.Amount) + ";" + fmt.Sprint(val.Category) + ";" + fmt.Sprint(val.Status) + "\n"
+				_, err := file.WriteString(str)
+				if err!=nil {
+					log.Print(err)
+				}
+				if k == records {
+					str = ""
+					j++
+					k = 0
+					file.Close()
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+
 //SumPayments сумирует платежи
 func (s *Service) SumPayments(goroutines int) types.Money {
 	wg := sync.WaitGroup{}
