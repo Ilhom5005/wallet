@@ -542,6 +542,27 @@ func (s *Service)Import(dir string) error{
 	return nil
 }
 
+func (s *Service) ExportAccountHistory(accountID int64) ([]types.Payment, error) {
+	_, err := s.FindAccountByID(accountID)
+	if err != nil {
+		return nil, ErrAccountNotFound
+	}
+	accountPayments := []types.Payment{}
+
+	for _, payment := range s.payments {
+		if payment.AccountID == accountID {
+			accountPayments = append(accountPayments, types.Payment{
+				ID:        payment.ID,
+				AccountID: payment.AccountID,
+				Amount:    payment.Amount,
+				Category:  payment.Category,
+				Status:    payment.Status,
+			})
+		}
+	}
+
+	return accountPayments, nil
+}
 
 // HistoryToFiles save datas recieved from above method
 func (s *Service) HistoryToFiles(payments []types.Payment, dir string, records int) error {

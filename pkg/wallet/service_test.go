@@ -259,6 +259,53 @@ func TestService_ExportImport_success_user(t *testing.T) {
 
 }
 
+func TestService_HistoryToFiles_success(t *testing.T) {
+	s := newTestService()
+
+	_, _, err := s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	_, _, err = s.addAccount(testAccount{
+		phone:   "+992935444994",
+		balance: 10_000_00,
+		payments: []struct {
+			amount   types.Money
+			category types.PaymentCategory
+		}{{
+			amount:   1000_00,
+			category: "auto",
+		}, {
+			amount:   1020_00,
+			category: "auto",
+		},
+			{
+				amount:   1030_00,
+				category: "auto",
+			}},
+	})
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	payments, err := s.ExportAccountHistory(2)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	err = s.HistoryToFiles(payments, "data", 2)
+	if err != nil {
+		t.Errorf("HistoryToFiles() Error can't export to file, error = %v", err)
+		return
+	}
+}
+
+
 func BenchmarkSumPayments_user(b *testing.B) {
 	var svc Service  
 	want:= types.Money(0)
